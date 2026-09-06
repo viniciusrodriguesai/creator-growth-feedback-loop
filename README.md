@@ -125,9 +125,11 @@ Only posts with `views > 0` participate in engagement rates. Zero-view posts
 remain stored and are reported in `zero_view_posts_excluded_from_rates`.
 
 Shares do not affect `engagement_rate` or `lift_vs_overall`. `known_shares`
-contains the sum of available shares from eligible posts, while
-`eligible_posts_with_share_data` and `eligible_posts_without_share_data` show
-the coverage. Missing shares are never interpreted as zero.
+contains the sum of available shares from eligible posts and is `null` when no
+eligible share value is available. A known share total of zero remains `0`.
+The `eligible_posts_with_share_data` and
+`eligible_posts_without_share_data` counters show the coverage. Missing shares
+are never interpreted as zero.
 
 Each group contains:
 
