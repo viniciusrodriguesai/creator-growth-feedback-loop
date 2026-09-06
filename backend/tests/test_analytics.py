@@ -45,6 +45,7 @@ def test_no_posts_returns_empty_analytics() -> None:
     assert result.overall.eligible_post_count == 0
     assert result.overall.total_views == 0
     assert result.overall.known_core_engagements == 0
+    assert result.overall.known_shares is None
     assert result.overall.engagement_rate is None
     assert result.by_hook_type == ()
     assert result.by_format == ()
@@ -78,7 +79,7 @@ def test_all_zero_view_posts_are_excluded_from_rate_and_share_evidence() -> None
     assert result.overall.eligible_post_count == 0
     assert result.overall.total_views == 0
     assert result.overall.known_core_engagements == 0
-    assert result.overall.known_shares == 0
+    assert result.overall.known_shares is None
     assert result.overall.eligible_posts_with_share_data == 0
     assert result.overall.eligible_posts_without_share_data == 0
     assert result.overall.engagement_rate is None
@@ -137,6 +138,14 @@ def test_partial_share_data_is_separate_from_primary_engagement_rate() -> None:
     assert "missing shares are not treated as zero" in (
         result.limitations.share_data_handling
     )
+
+
+def test_known_zero_shares_remain_distinct_from_unavailable_shares() -> None:
+    known_zero = calculate_analytics([analytics_post(shares=0)])
+    unavailable = calculate_analytics([analytics_post(shares=None)])
+
+    assert known_zero.overall.known_shares == 0
+    assert unavailable.overall.known_shares is None
 
 
 def test_group_rate_uses_aggregated_totals_instead_of_mean_post_rate() -> None:

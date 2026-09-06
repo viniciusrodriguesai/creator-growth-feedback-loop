@@ -13,7 +13,7 @@ class AnalyticsSummary(BaseModel):
     eligible_post_count: NonNegativeInteger
     total_views: NonNegativeInteger
     known_core_engagements: NonNegativeInteger
-    known_shares: NonNegativeInteger
+    known_shares: NonNegativeInteger | None
     eligible_posts_with_share_data: NonNegativeInteger
     eligible_posts_without_share_data: NonNegativeInteger
     engagement_rate: NonNegativeFiniteFloat | None

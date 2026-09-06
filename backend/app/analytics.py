@@ -29,7 +29,7 @@ class AnalyticsSummaryResult:
     eligible_post_count: int
     total_views: int
     known_core_engagements: int
-    known_shares: int
+    known_shares: int | None
     eligible_posts_with_share_data: int
     eligible_posts_without_share_data: int
     engagement_rate: float | None
@@ -42,7 +42,7 @@ class AnalyticsGroupResult:
     eligible_post_count: int
     total_views: int
     known_core_engagements: int
-    known_shares: int
+    known_shares: int | None
     eligible_posts_with_share_data: int
     eligible_posts_without_share_data: int
     engagement_rate: float | None
@@ -97,17 +97,16 @@ def _summarize(posts: tuple[PostAnalyticsInput, ...]) -> AnalyticsSummaryResult:
     posts_with_share_data = sum(
         post.shares is not None for post in eligible_posts
     )
+    known_share_values = tuple(
+        post.shares for post in eligible_posts if post.shares is not None
+    )
 
     return AnalyticsSummaryResult(
         post_count=len(posts),
         eligible_post_count=len(eligible_posts),
         total_views=total_views,
         known_core_engagements=known_core_engagements,
-        known_shares=sum(
-            post.shares
-            for post in eligible_posts
-            if post.shares is not None
-        ),
+        known_shares=(sum(known_share_values) if known_share_values else None),
         eligible_posts_with_share_data=posts_with_share_data,
         eligible_posts_without_share_data=(
             len(eligible_posts) - posts_with_share_data
