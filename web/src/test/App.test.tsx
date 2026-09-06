@@ -95,7 +95,7 @@ describe("App", () => {
     expect(screen.getByText("18.5%")).toBeInTheDocument();
     expect(screen.getByText("8.3%")).toBeInTheDocument();
     expect(screen.getByText("+10.3%")).toBeInTheDocument();
-    expect(screen.getByText("2.24×")).toBeInTheDocument();
+    expect(screen.getByText("2.2×")).toBeInTheDocument();
     expect(
       screen.getByText(
         "The 'pain point' hook type was associated with higher observed core engagement than the rest of eligible posts.",

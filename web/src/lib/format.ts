@@ -19,7 +19,7 @@ export function formatPercentage(value: number | null): string {
 }
 
 export function formatLift(value: number | null): string {
-  return value === null ? "Not available" : `${value.toFixed(2)}×`;
+  return value === null ? "Not available" : `${value.toFixed(1)}×`;
 }
 
 export function formatDisplayValue(value: string): string {

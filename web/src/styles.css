@@ -301,6 +301,15 @@ h1 {
   margin-top: 4px;
 }
 
+.recommendation-limitations h3 {
+  color: #91ad9f;
+}
+
+.recommendation-limitations ul {
+  color: #b7c9c0;
+  font-size: 0.73rem;
+}
+
 .content-workspace {
   display: grid;
   grid-template-columns: minmax(360px, 0.8fr) minmax(0, 1.2fr);
@@ -333,6 +342,20 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+@media (min-width: 641px) {
+  .content-form-panel .section-heading {
+    margin-bottom: 18px;
+  }
+
+  .content-form {
+    row-gap: 12px;
+  }
+
+  .content-form-panel .form-field {
+    gap: 5px;
+  }
 }
 
 .form-field {
@@ -550,6 +573,54 @@ h1 {
   overflow-x: auto;
 }
 
+.posts-panel table {
+  table-layout: fixed;
+}
+
+.posts-panel th,
+.posts-panel td {
+  padding: 9px 6px;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.posts-panel thead th {
+  white-space: nowrap;
+}
+
+.posts-panel tbody th {
+  max-width: none;
+}
+
+.posts-panel th:nth-child(1) {
+  width: 24%;
+}
+
+.posts-panel th:nth-child(2) {
+  width: 14%;
+}
+
+.posts-panel th:nth-child(3) {
+  width: 13%;
+}
+
+.posts-panel th:nth-child(4) {
+  width: 10%;
+}
+
+.posts-panel th:nth-child(5) {
+  width: 11%;
+}
+
+.posts-panel th:nth-child(6) {
+  width: 10%;
+}
+
+.posts-panel th:nth-child(7) {
+  width: 18%;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -669,5 +740,9 @@ tbody th {
   .form-field-wide,
   .form-actions {
     grid-column: auto;
+  }
+
+  .posts-panel table {
+    min-width: 640px;
   }
 }

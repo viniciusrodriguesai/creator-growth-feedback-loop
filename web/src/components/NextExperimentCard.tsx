@@ -150,7 +150,7 @@ export function NextExperimentCard({ resource }: NextExperimentCardProps) {
               <h3>Why this experiment</h3>
               <p>{formatDisplayText(recommendation.evidence.summary)}</p>
             </div>
-            <div>
+            <div className="recommendation-limitations">
               <h3>Interpret with care</h3>
               <ul>
                 {recommendation.limitations.map((limitation) => (
