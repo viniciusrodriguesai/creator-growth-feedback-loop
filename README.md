@@ -32,6 +32,39 @@ The local database is stored at `backend/creator_growth.db` and is ignored by Gi
 .\.venv\Scripts\python.exe -m pytest backend\tests
 ```
 
+## Run the frontend
+
+Install the frontend dependencies from the repository root:
+
+```powershell
+cd web
+npm install
+```
+
+Keep the FastAPI backend running on `http://127.0.0.1:8000`. In a second
+terminal, start Vite from the `web` directory:
+
+```powershell
+npm run dev
+```
+
+Open `http://localhost:5173`. The frontend calls relative `/api` paths. During
+local development, Vite removes the `/api` prefix and forwards requests to
+FastAPI. This avoids hardcoded production URLs and does not require backend CORS
+configuration.
+
+Run the frontend tests and production build from `web`:
+
+```powershell
+npm test
+npm run build
+```
+
+The single-page interface shows the next experiment first, followed by summary
+analytics, grouped performance, the content-entry form, and the persisted posts
+that provide the evidence. After a successful content submission, the frontend
+refreshes posts, analytics, and recommendations without reloading the page.
+
 ## Current endpoints
 
 ### Health
