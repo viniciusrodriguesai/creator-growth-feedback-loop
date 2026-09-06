@@ -152,3 +152,45 @@ Grouped results are ordered by `value` alphabetically without case sensitivity,
 with the original value used as a deterministic tie-breaker. Rates are returned
 as normal JSON numbers without application-level rounding. Undefined values are
 returned as `null`; the API never returns `NaN` or infinity.
+
+### Get the next experiment
+
+`GET /recommendations` returns HTTP `200` with either
+`recommendation_available` or `insufficient_data`.
+
+The engine evaluates `hook_type`, `format`, and `creator` groups using the same
+core engagement metric as analytics. Each candidate needs at least two eligible
+posts. This threshold is an explicit product heuristic, not a claim of
+statistical significance.
+
+For every eligible candidate, the engine compares its aggregated rate with all
+other eligible posts in the same dimension:
+
+```text
+candidate_rate = candidate_core_engagements / candidate_views
+comparison_rate = remaining_core_engagements / remaining_views
+contrast_vs_rest = candidate_rate / comparison_rate
+rate_difference = candidate_rate - comparison_rate
+```
+
+`rate_difference` is the primary ranking measure because it remains defined when
+the comparison rate is zero. In that case, `contrast_vs_rest` is `null` rather
+than infinity. Candidates are then ordered by larger eligible sample, larger
+view count, dimension priority (`hook_type` before `format`), and stable lexical
+value.
+
+Only `hook_type` and `format` can become the recommended dimension. Creator
+performance is included as supporting evidence but cannot override an actionable
+creative attribute. The action changes one dimension and asks that the other be
+kept as consistent as possible.
+
+A successful result includes the selected value, candidate and comparison rates,
+absolute difference, optional contrast, sample and view totals, evidence,
+action, and limitations. The limitations state that the evidence is
+observational, excludes shares from the primary metric, and may be confounded
+when the selected pattern appears with only one creator or control attribute.
+
+The endpoint returns `insufficient_data` instead of forcing an experiment when
+there are no eligible posts, no actionable group reaches the threshold, no valid
+comparison population exists, or no actionable candidate outperforms its
+comparison population.
