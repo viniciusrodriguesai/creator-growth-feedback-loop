@@ -15,6 +15,9 @@ dist/
 *.egg-info/
 .coverage
 htmlcov/
+node_modules/
+coverage/
+*.tsbuildinfo
 
 # Environment files and secrets
 .env
