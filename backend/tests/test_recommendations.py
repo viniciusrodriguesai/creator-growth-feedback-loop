@@ -176,6 +176,57 @@ def test_tied_dimensions_prefer_hook_type_over_format() -> None:
     assert any("format may be confounded" in item for item in result.limitations)
 
 
+def test_winning_hook_exposes_creator_confounding() -> None:
+    result = recommend_next_experiment(
+        [
+            recommendation_post(
+                hook_type="pain", format="short", creator="Alex", likes=20
+            ),
+            recommendation_post(
+                hook_type="pain", format="long", creator="Alex", likes=20
+            ),
+            recommendation_post(
+                hook_type="product", format="short", creator="Bea", likes=10
+            ),
+            recommendation_post(
+                hook_type="product", format="long", creator="Bea", likes=10
+            ),
+        ]
+    )
+
+    assert result.dimension == "hook_type"
+    assert result.value == "pain"
+    assert any("creator may be confounded" in item for item in result.limitations)
+    assert not any("format may be confounded" in item for item in result.limitations)
+
+
+def test_winning_format_exposes_hook_type_confounding() -> None:
+    result = recommend_next_experiment(
+        [
+            recommendation_post(
+                hook_type="pain", format="short", creator="Alex", likes=20
+            ),
+            recommendation_post(
+                hook_type="pain", format="short", creator="Bea", likes=20
+            ),
+            recommendation_post(
+                hook_type="pain", format="long", creator="Alex", likes=0
+            ),
+            recommendation_post(
+                hook_type="product", format="long", creator="Alex", likes=10
+            ),
+            recommendation_post(
+                hook_type="product", format="long", creator="Bea", likes=10
+            ),
+        ]
+    )
+
+    assert result.dimension == "format"
+    assert result.value == "short"
+    assert any("hook_type may be confounded" in item for item in result.limitations)
+    assert not any("creator may be confounded" in item for item in result.limitations)
+
+
 def test_creator_evidence_does_not_override_actionable_candidate() -> None:
     posts = [
         recommendation_post(hook_type="good", creator="Alex", likes=30),
