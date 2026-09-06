@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import CheckConstraint, DateTime, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import TypeDecorator
@@ -60,3 +60,14 @@ class Post(Base):
     shares: Mapped[int | None] = mapped_column(nullable=True)
     duration_seconds: Mapped[int | None] = mapped_column(nullable=True)
     published_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+
+
+class YouTubeImport(Base):
+    __tablename__ = "youtube_imports"
+
+    video_id: Mapped[str] = mapped_column(String(11), primary_key=True)
+    post_id: Mapped[int] = mapped_column(
+        ForeignKey("posts.id"),
+        nullable=False,
+        unique=True,
+    )

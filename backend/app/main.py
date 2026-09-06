@@ -10,6 +10,7 @@ from app.analytics import PostAnalyticsInput, calculate_analytics
 from app.analytics_schemas import AnalyticsResponse
 from app.database import DEFAULT_DATABASE_URL, create_database_engine, get_session
 from app.models import Base, Post
+from app.posts import persist_post
 from app.recommendation_schemas import RecommendationResponse
 from app.recommendations import recommend_next_experiment
 from app.schemas import PostCreate, PostResponse
@@ -51,11 +52,7 @@ def create_app(database_url: str = DEFAULT_DATABASE_URL) -> FastAPI:
         post_data: PostCreate,
         session: Annotated[Session, Depends(get_session)],
     ) -> Post:
-        post = Post(**post_data.model_dump())
-        session.add(post)
-        session.commit()
-        session.refresh(post)
-        return post
+        return persist_post(session, post_data)
 
     @application.get("/posts", response_model=list[PostResponse])
     def list_posts(
