@@ -63,8 +63,8 @@ The local database is stored at `backend/creator_growth.db` and is ignored by Gi
 ```
 
 The supported platform values are `youtube`, `instagram`, and `tiktok`.
-`duration_seconds` may be omitted or set to `null`. All numeric values must be
-non-negative, and `published_at` must include a timezone.
+`shares` and `duration_seconds` may be omitted or set to `null`. Numeric values,
+when present, must be non-negative, and `published_at` must include a timezone.
 
 A successful request returns HTTP `201` with the stored post. Datetimes are
 normalized to UTC:
@@ -108,3 +108,45 @@ normalized to UTC:
   }
 ]
 ```
+
+### Analyze posts
+
+`GET /analytics` returns HTTP `200` with an overall summary and results grouped
+by `hook_type`, `format`, and `creator`.
+
+The primary metric uses only fields that are consistently available:
+
+```text
+known_core_engagements = likes + comments
+engagement_rate = sum(known_core_engagements) / sum(views)
+```
+
+Only posts with `views > 0` participate in engagement rates. Zero-view posts
+remain stored and are reported in `zero_view_posts_excluded_from_rates`.
+
+Shares do not affect `engagement_rate` or `lift_vs_overall`. `known_shares`
+contains the sum of available shares from eligible posts, while
+`eligible_posts_with_share_data` and `eligible_posts_without_share_data` show
+the coverage. Missing shares are never interpreted as zero.
+
+Each group contains:
+
+- `value`
+- `post_count`
+- `eligible_post_count`
+- `total_views`
+- `known_core_engagements`
+- `known_shares`
+- `eligible_posts_with_share_data`
+- `eligible_posts_without_share_data`
+- `engagement_rate`
+- `lift_vs_overall`
+
+`lift_vs_overall` divides the group engagement rate by the overall engagement
+rate. It is `null` when either rate is unavailable or when the overall rate is
+zero.
+
+Grouped results are ordered by `value` alphabetically without case sensitivity,
+with the original value used as a deterministic tie-breaker. Rates are returned
+as normal JSON numbers without application-level rounding. Undefined values are
+returned as `null`; the API never returns `NaN` or infinity.
