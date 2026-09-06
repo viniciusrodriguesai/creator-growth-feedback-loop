@@ -1,4 +1,17 @@
+import { AddContentForm } from "./components/AddContentForm";
+import { ExistingPostsTable } from "./components/ExistingPostsTable";
+import { useDashboardData } from "./hooks/useDashboardData";
+
 function App() {
+  const { posts, analytics, recommendation, refreshAll } = useDashboardData();
+  const resources = [posts, analytics, recommendation];
+  const initialLoading = resources.every(
+    (resource) => resource.loading && resource.data === null,
+  );
+  const catastrophicFailure = resources.every(
+    (resource) => resource.error !== null && resource.data === null,
+  );
+
   return (
     <div className="app-shell">
       <header className="product-header">
@@ -7,10 +20,46 @@ function App() {
         <p>Turn content performance into an explainable next experiment.</p>
       </header>
       <main>
-        <section className="workspace-placeholder" aria-labelledby="workspace-title">
-          <h2 id="workspace-title">Product workspace</h2>
-          <p>The content feedback loop is ready to connect to the backend.</p>
-        </section>
+        {initialLoading ? (
+          <section className="panel global-state" aria-live="polite">
+            <p className="eyebrow">Connecting the loop</p>
+            <h2>Loading content evidence…</h2>
+          </section>
+        ) : catastrophicFailure ? (
+          <section className="panel global-state" role="alert">
+            <p className="eyebrow">Connection problem</p>
+            <h2>The product data is unavailable</h2>
+            <p>Check that the FastAPI backend is running, then try again.</p>
+            <button type="button" onClick={() => void refreshAll()}>
+              Retry connection
+            </button>
+          </section>
+        ) : (
+          <>
+            <section className="panel next-experiment-placeholder" aria-labelledby="next-title">
+              <p className="eyebrow">Next experiment</p>
+              <h2 id="next-title">Recommendation evidence is ready</h2>
+              {recommendation.error ? (
+                <p className="inline-error" role="alert">
+                  The recommendation could not be loaded. {recommendation.error}
+                </p>
+              ) : (
+                <p>The decision details will appear in this primary workspace.</p>
+              )}
+            </section>
+
+            {analytics.error ? (
+              <p className="inline-error analytics-error" role="alert">
+                Analytics could not be loaded. {analytics.error}
+              </p>
+            ) : null}
+
+            <div className="content-workspace">
+              <AddContentForm onCreated={refreshAll} />
+              <ExistingPostsTable resource={posts} />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
