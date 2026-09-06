@@ -1,6 +1,10 @@
 import type { Post } from "../api/types";
 import type { ResourceState } from "../hooks/useDashboardData";
-import { formatDateTime, formatInteger } from "../lib/format";
+import {
+  formatDateTime,
+  formatDisplayValue,
+  formatInteger,
+} from "../lib/format";
 
 interface ExistingPostsTableProps {
   resource: ResourceState<Post[]>;
@@ -54,9 +58,9 @@ export function ExistingPostsTable({ resource }: ExistingPostsTableProps) {
                 <tr key={post.id}>
                   <th scope="row">{post.title}</th>
                   <td><span className="platform-tag">{post.platform}</span></td>
-                  <td>{post.hook_type}</td>
-                  <td>{post.format}</td>
-                  <td>{post.creator}</td>
+                  <td>{formatDisplayValue(post.hook_type)}</td>
+                  <td>{formatDisplayValue(post.format)}</td>
+                  <td>{formatDisplayValue(post.creator)}</td>
                   <td className="numeric-cell">{formatInteger(post.views)}</td>
                   <td>{formatDateTime(post.published_at)}</td>
                 </tr>

@@ -73,7 +73,7 @@ describe("App", () => {
     const hookTable = screen.getByRole("table", {
       name: "Engagement performance grouped by hook type",
     });
-    expect(within(hookTable).getByText("pain_point")).toBeInTheDocument();
+    expect(within(hookTable).getByText("Pain point")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Format" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Creator" })).toBeInTheDocument();
   });
@@ -82,7 +82,7 @@ describe("App", () => {
     render(<App />);
 
     const recommendationHeading = await screen.findByRole("heading", {
-      name: "Test pain_point next",
+      name: "Test pain-point hooks next",
     });
     const summaryHeading = screen.getByRole("heading", {
       name: "Performance snapshot",
@@ -96,7 +96,14 @@ describe("App", () => {
     expect(screen.getByText("8.3%")).toBeInTheDocument();
     expect(screen.getByText("+10.3%")).toBeInTheDocument();
     expect(screen.getByText("2.24×")).toBeInTheDocument();
-    expect(screen.getByText(recommendation.evidence.summary)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The 'pain point' hook type was associated with higher observed core engagement than the rest of eligible posts.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("engagement vs other eligible posts"),
+    ).toBeInTheDocument();
     expect(screen.getByText(/not causation/i)).toBeInTheDocument();
   });
 
@@ -137,7 +144,7 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByText("Pain point opening")).toBeInTheDocument();
-    expect(screen.getByText("Test pain_point next")).toBeInTheDocument();
+    expect(screen.getByText("Test pain-point hooks next")).toBeInTheDocument();
     expect(screen.getByText(/Analytics could not be refreshed/)).toBeInTheDocument();
     expect(
       screen.queryByText("The product data is unavailable"),
@@ -169,6 +176,23 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { name: "No content yet" })).toBeVisible();
     expect(screen.getByText(/Add the first performance record/)).toBeVisible();
+  });
+
+  it("uses natural copy for format recommendations", async () => {
+    mockedGetRecommendation.mockResolvedValue({
+      ...recommendation,
+      dimension: "format",
+      value: "short_form",
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Test short-form format next",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Short form")).toBeInTheDocument();
   });
 
   it("shows a global error only when all dashboard resources fail", async () => {

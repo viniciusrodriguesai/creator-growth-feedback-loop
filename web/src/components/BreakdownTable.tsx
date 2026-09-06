@@ -1,5 +1,10 @@
 import type { AnalyticsGroup } from "../api/types";
-import { formatInteger, formatLift, formatPercentage } from "../lib/format";
+import {
+  formatDisplayValue,
+  formatInteger,
+  formatLift,
+  formatPercentage,
+} from "../lib/format";
 
 interface BreakdownTableProps {
   caption: string;
@@ -28,7 +33,7 @@ export function BreakdownTable({ caption, groups }: BreakdownTableProps) {
             <tbody>
               {groups.map((group) => (
                 <tr key={group.value}>
-                  <th scope="row">{group.value}</th>
+                  <th scope="row">{formatDisplayValue(group.value)}</th>
                   <td className="numeric-cell">
                     {formatInteger(group.eligible_post_count)}
                   </td>

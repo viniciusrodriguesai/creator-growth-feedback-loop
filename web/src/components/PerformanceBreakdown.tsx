@@ -1,5 +1,6 @@
 import type { AnalyticsResponse } from "../api/types";
 import type { ResourceState } from "../hooks/useDashboardData";
+import { formatDisplayText } from "../lib/format";
 import { BreakdownTable } from "./BreakdownTable";
 
 interface PerformanceBreakdownProps {
@@ -29,8 +30,14 @@ export function PerformanceBreakdown({ resource }: PerformanceBreakdownProps) {
 
       <div className="metric-note">
         <strong>Metric note</strong>
-        <span>{resource.data.limitations.engagement_rate_definition}</span>
-        <span>{resource.data.limitations.share_data_handling}</span>
+        <span>
+          {formatDisplayText(
+            resource.data.limitations.engagement_rate_definition,
+          )}
+        </span>
+        <span>
+          {formatDisplayText(resource.data.limitations.share_data_handling)}
+        </span>
       </div>
     </section>
   );

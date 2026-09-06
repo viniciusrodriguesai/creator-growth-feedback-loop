@@ -1,6 +1,8 @@
 import type { RecommendationResponse } from "../api/types";
 import type { ResourceState } from "../hooks/useDashboardData";
 import {
+  formatDisplayText,
+  formatDisplayValue,
   formatInteger,
   formatLift,
   formatPercentage,
@@ -12,6 +14,16 @@ interface NextExperimentCardProps {
 
 function formatDimension(value: "hook_type" | "format"): string {
   return value === "hook_type" ? "Hook type" : "Format";
+}
+
+function formatRecommendationTitle(
+  dimension: "hook_type" | "format",
+  value: string,
+): string {
+  const naturalValue = value.replaceAll("_", "-");
+  return dimension === "hook_type"
+    ? `Test ${naturalValue} hooks next`
+    : `Test ${naturalValue} format next`;
 }
 
 function hasCompleteRecommendation(
@@ -54,7 +66,10 @@ export function NextExperimentCard({ resource }: NextExperimentCardProps) {
           <p className="eyebrow">Next experiment</p>
           <h2 id="next-experiment-title">
             {recommendationAvailable
-              ? `Test ${recommendation.value} next`
+              ? formatRecommendationTitle(
+                  recommendation.dimension,
+                  recommendation.value,
+                )
               : recommendation?.status === "insufficient_data"
                 ? "More comparable posts needed"
                 : "Finding the clearest next test"}
@@ -77,8 +92,8 @@ export function NextExperimentCard({ resource }: NextExperimentCardProps) {
 
       {recommendation?.status === "insufficient_data" ? (
         <div className="insufficient-state">
-          <p>{recommendation.evidence.summary}</p>
-          <strong>{recommendation.action}</strong>
+          <p>{formatDisplayText(recommendation.evidence.summary)}</p>
+          <strong>{formatDisplayText(recommendation.action)}</strong>
           <span>
             Current evidence: {recommendation.evidence.overall_eligible_post_count}{" "}
             eligible posts. Candidate minimum:{" "}
@@ -92,11 +107,11 @@ export function NextExperimentCard({ resource }: NextExperimentCardProps) {
           <div className="recommendation-lead">
             <div className="recommendation-target">
               <span>{formatDimension(recommendation.dimension)}</span>
-              <strong>{recommendation.value}</strong>
+              <strong>{formatDisplayValue(recommendation.value)}</strong>
             </div>
             <div className="recommendation-action">
               <span>Controlled next action</span>
-              <p>{recommendation.action}</p>
+              <p>{formatDisplayText(recommendation.action)}</p>
             </div>
           </div>
 
@@ -114,8 +129,11 @@ export function NextExperimentCard({ resource }: NextExperimentCardProps) {
               <dd>+{formatPercentage(recommendation.rate_difference)}</dd>
             </div>
             <div>
-              <dt>Contrast vs rest</dt>
-              <dd>{formatLift(recommendation.contrast_vs_rest)}</dd>
+              <dt>Contrast</dt>
+              <dd>
+                {formatLift(recommendation.contrast_vs_rest)}
+                <span>engagement vs other eligible posts</span>
+              </dd>
             </div>
             <div>
               <dt>Eligible posts</dt>
@@ -130,13 +148,13 @@ export function NextExperimentCard({ resource }: NextExperimentCardProps) {
           <div className="recommendation-evidence">
             <div>
               <h3>Why this experiment</h3>
-              <p>{recommendation.evidence.summary}</p>
+              <p>{formatDisplayText(recommendation.evidence.summary)}</p>
             </div>
             <div>
               <h3>Interpret with care</h3>
               <ul>
                 {recommendation.limitations.map((limitation) => (
-                  <li key={limitation}>{limitation}</li>
+                  <li key={limitation}>{formatDisplayText(limitation)}</li>
                 ))}
               </ul>
             </div>

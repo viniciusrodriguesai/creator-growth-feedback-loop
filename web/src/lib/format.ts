@@ -21,3 +21,15 @@ export function formatPercentage(value: number | null): string {
 export function formatLift(value: number | null): string {
   return value === null ? "Not available" : `${value.toFixed(2)}×`;
 }
+
+export function formatDisplayValue(value: string): string {
+  const label = value.replaceAll("_", " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+export function formatDisplayText(value: string): string {
+  return value.replaceAll(
+    /\b[a-z0-9]+(?:_[a-z0-9]+)+\b/g,
+    (token) => token.replaceAll("_", " "),
+  );
+}

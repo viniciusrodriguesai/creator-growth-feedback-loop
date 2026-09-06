@@ -262,6 +262,15 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
+.recommendation-metrics dd span {
+  display: block;
+  margin-top: 4px;
+  color: #a9c7b9;
+  font-size: 0.62rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
 .recommendation-evidence {
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;
