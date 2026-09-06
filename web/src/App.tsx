@@ -1,5 +1,7 @@
 import { AddContentForm } from "./components/AddContentForm";
 import { ExistingPostsTable } from "./components/ExistingPostsTable";
+import { PerformanceBreakdown } from "./components/PerformanceBreakdown";
+import { SummaryCards } from "./components/SummaryCards";
 import { useDashboardData } from "./hooks/useDashboardData";
 
 function App() {
@@ -48,11 +50,8 @@ function App() {
               )}
             </section>
 
-            {analytics.error ? (
-              <p className="inline-error analytics-error" role="alert">
-                Analytics could not be loaded. {analytics.error}
-              </p>
-            ) : null}
+            <SummaryCards resource={analytics} />
+            <PerformanceBreakdown resource={analytics} />
 
             <div className="content-workspace">
               <AddContentForm onCreated={refreshAll} />

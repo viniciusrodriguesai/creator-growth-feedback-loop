@@ -231,8 +231,106 @@ h1 {
   font-size: 0.86rem;
 }
 
-.analytics-error {
+.summary-section {
   margin-bottom: 20px;
+  padding: 4px 2px;
+}
+
+.compact-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.compact-heading h2 {
+  margin-bottom: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.refresh-status {
+  color: #6f7973;
+  font-size: 0.78rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 17px;
+  border: 1px solid #dfe3de;
+  border-radius: 11px;
+  background: #fafbf8;
+}
+
+.summary-card span {
+  color: #6d7871;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.summary-card strong {
+  color: #29362f;
+  font-size: 1.35rem;
+  letter-spacing: -0.035em;
+}
+
+.breakdown-section {
+  margin-bottom: 20px;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.breakdown-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e0e4df;
+  border-radius: 11px;
+  background: #fbfcfa;
+}
+
+.breakdown-card h3 {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+}
+
+.breakdown-card table {
+  font-size: 0.76rem;
+}
+
+.breakdown-card th,
+.breakdown-card td {
+  padding: 9px 7px;
+}
+
+.metric-note {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 12px 18px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e1e5e0;
+  color: #6d7771;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.metric-note strong {
+  color: #465249;
 }
 
 .count-badge {
@@ -332,6 +430,15 @@ tbody th {
   .content-workspace {
     grid-template-columns: 1fr;
   }
+
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-note {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -356,6 +463,10 @@ tbody th {
 
   .content-form {
     grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .form-field-wide,
