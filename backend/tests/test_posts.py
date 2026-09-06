@@ -67,6 +67,22 @@ def test_zero_views_and_more_interactions_than_views_are_accepted(
     assert response.json()["likes"] == 10
 
 
+def test_unavailable_shares_are_persisted(client: TestClient) -> None:
+    null_response = client.post("/posts", json=post_payload(shares=None))
+    omitted_payload = post_payload()
+    del omitted_payload["shares"]
+    omitted_response = client.post("/posts", json=omitted_payload)
+
+    assert null_response.status_code == 201
+    assert omitted_response.status_code == 201
+    assert null_response.json()["shares"] is None
+    assert omitted_response.json()["shares"] is None
+
+    list_response = client.get("/posts")
+
+    assert [post["shares"] for post in list_response.json()] == [None, None]
+
+
 def test_timezone_naive_published_at_is_rejected(client: TestClient) -> None:
     response = client.post(
         "/posts",

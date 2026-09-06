@@ -57,6 +57,6 @@ class Post(Base):
     views: Mapped[int] = mapped_column(nullable=False)
     likes: Mapped[int] = mapped_column(nullable=False)
     comments: Mapped[int] = mapped_column(nullable=False)
-    shares: Mapped[int] = mapped_column(nullable=False)
+    shares: Mapped[int | None] = mapped_column(nullable=True)
     duration_seconds: Mapped[int | None] = mapped_column(nullable=True)
     published_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)

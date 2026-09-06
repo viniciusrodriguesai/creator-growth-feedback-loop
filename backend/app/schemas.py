@@ -25,7 +25,7 @@ class PostCreate(BaseModel):
     views: NonNegativeInteger
     likes: NonNegativeInteger
     comments: NonNegativeInteger
-    shares: NonNegativeInteger
+    shares: NonNegativeInteger | None = None
     duration_seconds: NonNegativeInteger | None = None
     published_at: AwareDatetime
 
