@@ -1,5 +1,6 @@
 import { AddContentForm } from "./components/AddContentForm";
 import { ExistingPostsTable } from "./components/ExistingPostsTable";
+import { NextExperimentCard } from "./components/NextExperimentCard";
 import { PerformanceBreakdown } from "./components/PerformanceBreakdown";
 import { SummaryCards } from "./components/SummaryCards";
 import { useDashboardData } from "./hooks/useDashboardData";
@@ -38,17 +39,7 @@ function App() {
           </section>
         ) : (
           <>
-            <section className="panel next-experiment-placeholder" aria-labelledby="next-title">
-              <p className="eyebrow">Next experiment</p>
-              <h2 id="next-title">Recommendation evidence is ready</h2>
-              {recommendation.error ? (
-                <p className="inline-error" role="alert">
-                  The recommendation could not be loaded. {recommendation.error}
-                </p>
-              ) : (
-                <p>The decision details will appear in this primary workspace.</p>
-              )}
-            </section>
+            <NextExperimentCard resource={recommendation} />
 
             <SummaryCards resource={analytics} />
             <PerformanceBreakdown resource={analytics} />
