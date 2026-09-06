@@ -10,6 +10,8 @@ from app.analytics import PostAnalyticsInput, calculate_analytics
 from app.analytics_schemas import AnalyticsResponse
 from app.database import DEFAULT_DATABASE_URL, create_database_engine, get_session
 from app.models import Base, Post
+from app.recommendation_schemas import RecommendationResponse
+from app.recommendations import recommend_next_experiment
 from app.schemas import PostCreate, PostResponse
 
 
@@ -18,6 +20,18 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     Base.metadata.create_all(application.state.database_engine)
     yield
     application.state.database_engine.dispose()
+
+
+def _to_analytics_input(post: Post) -> PostAnalyticsInput:
+    return PostAnalyticsInput(
+        hook_type=post.hook_type,
+        format=post.format,
+        creator=post.creator,
+        views=post.views,
+        likes=post.likes,
+        comments=post.comments,
+        shares=post.shares,
+    )
 
 
 def create_app(database_url: str = DEFAULT_DATABASE_URL) -> FastAPI:
@@ -53,21 +67,17 @@ def create_app(database_url: str = DEFAULT_DATABASE_URL) -> FastAPI:
     def get_analytics(
         session: Annotated[Session, Depends(get_session)],
     ) -> AnalyticsResponse:
-        posts = session.scalars(select(Post)).all()
-        analytics_input = (
-            PostAnalyticsInput(
-                hook_type=post.hook_type,
-                format=post.format,
-                creator=post.creator,
-                views=post.views,
-                likes=post.likes,
-                comments=post.comments,
-                shares=post.shares,
-            )
-            for post in posts
-        )
-        result = calculate_analytics(analytics_input)
+        posts = session.scalars(select(Post).order_by(Post.id)).all()
+        result = calculate_analytics(map(_to_analytics_input, posts))
         return AnalyticsResponse.model_validate(result)
+
+    @application.get("/recommendations", response_model=RecommendationResponse)
+    def get_recommendation(
+        session: Annotated[Session, Depends(get_session)],
+    ) -> RecommendationResponse:
+        posts = session.scalars(select(Post).order_by(Post.id)).all()
+        result = recommend_next_experiment(map(_to_analytics_input, posts))
+        return RecommendationResponse.model_validate(result)
 
     return application
 
