@@ -597,7 +597,7 @@ tbody th {
 
 @media (max-width: 960px) {
   .content-workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .breakdown-grid {
