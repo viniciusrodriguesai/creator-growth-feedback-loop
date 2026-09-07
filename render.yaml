@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: creator-growth-feedback-loop-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: DEMO_WRITE_RATE_LIMIT
+        value: "10"
+      - key: DEMO_WRITE_RATE_WINDOW_SECONDS
+        value: "3600"
+
+  - type: web
+    name: creator-growth-feedback-loop
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
