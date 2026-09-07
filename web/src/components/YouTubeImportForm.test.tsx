@@ -15,6 +15,7 @@ vi.mock("../api/client", async (importOriginal) => {
 });
 
 const mockedImportYouTubeVideo = vi.mocked(importYouTubeVideo);
+const onImported = vi.fn<() => Promise<void>>();
 
 const importedPost: Post = {
   id: 7,
@@ -51,7 +52,9 @@ async function fillImportForm() {
 describe("YouTubeImportForm", () => {
   beforeEach(() => {
     mockedImportYouTubeVideo.mockReset();
-    render(<YouTubeImportForm />);
+    onImported.mockReset();
+    onImported.mockResolvedValue(undefined);
+    render(<YouTubeImportForm onImported={onImported} />);
   });
 
   it("renders accessible URL, hook type, format, and submit controls", () => {
@@ -74,6 +77,7 @@ describe("YouTubeImportForm", () => {
       hook_type: "question",
       format: "long",
     });
+    expect(onImported).toHaveBeenCalledOnce();
   });
 
   it("disables the form and communicates while the import is pending", async () => {
@@ -138,6 +142,7 @@ describe("YouTubeImportForm", () => {
     expect(screen.getByRole("alert")).not.toHaveTextContent(
       "Internal duplicate details",
     );
+    expect(onImported).not.toHaveBeenCalled();
   });
 
   it("explains another structured YouTube backend error", async () => {
@@ -157,6 +162,7 @@ describe("YouTubeImportForm", () => {
       "YouTube importing is temporarily unavailable. Please try again later.",
     );
     expect(screen.getByRole("alert")).not.toHaveTextContent("Raw quota response");
+    expect(onImported).not.toHaveBeenCalled();
   });
 
   it("uses a safe message for an unknown error", async () => {
@@ -171,6 +177,25 @@ describe("YouTubeImportForm", () => {
       "We couldn't import this video. Please try again.",
     );
     expect(screen.getByRole("alert")).not.toHaveTextContent("POST /imports");
+    expect(onImported).not.toHaveBeenCalled();
+  });
+
+  it("keeps import success when the dashboard callback fails", async () => {
+    mockedImportYouTubeVideo.mockResolvedValue(importedPost);
+    onImported.mockRejectedValue(new Error("raw refresh failure"));
+    const user = await fillImportForm();
+
+    await user.click(screen.getByRole("button", { name: "Import video" }));
+
+    expect(
+      await screen.findByText(
+        'Imported "A useful creator experiment" from YouTube.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The video was imported, but the dashboard could not be refreshed.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent("raw refresh failure");
   });
 
   it("does not submit twice while the first request is pending", async () => {

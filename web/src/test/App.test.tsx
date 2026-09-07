@@ -9,6 +9,7 @@ import {
   getAnalytics,
   getPosts,
   getRecommendation,
+  importYouTubeVideo,
 } from "../api/client";
 import { localDateTimeToIso } from "../lib/datetime";
 import {
@@ -26,6 +27,7 @@ vi.mock("../api/client", async (importOriginal) => {
     getAnalytics: vi.fn(),
     getPosts: vi.fn(),
     getRecommendation: vi.fn(),
+    importYouTubeVideo: vi.fn(),
   };
 });
 
@@ -33,6 +35,51 @@ const mockedCreatePost = vi.mocked(createPost);
 const mockedGetAnalytics = vi.mocked(getAnalytics);
 const mockedGetPosts = vi.mocked(getPosts);
 const mockedGetRecommendation = vi.mocked(getRecommendation);
+const mockedImportYouTubeVideo = vi.mocked(importYouTubeVideo);
+
+const importedPost = {
+  ...posts[0],
+  id: 3,
+  title: "Imported YouTube experiment",
+  hook_type: "question",
+  format: "long",
+  creator: "Creator Channel",
+  views: 12_000,
+  likes: 850,
+  comments: 42,
+  duration_seconds: 73,
+  published_at: "2026-08-20T14:30:00Z",
+};
+
+const refreshedAnalytics = {
+  ...analytics,
+  overall: {
+    ...analytics.overall,
+    post_count: 3,
+    eligible_post_count: 3,
+    total_views: 14_000,
+  },
+  by_hook_type: [
+    ...analytics.by_hook_type,
+    {
+      value: "question",
+      post_count: 1,
+      eligible_post_count: 1,
+      total_views: 12_000,
+      known_core_engagements: 892,
+      known_shares: null,
+      eligible_posts_with_share_data: 0,
+      eligible_posts_without_share_data: 1,
+      engagement_rate: 892 / 12_000,
+      lift_vs_overall: 0.5,
+    },
+  ],
+};
+
+const refreshedRecommendation = {
+  ...recommendation,
+  value: "question",
+};
 
 function mockPopulatedDashboard() {
   mockedGetPosts.mockResolvedValue(posts);
@@ -54,6 +101,18 @@ async function fillRequiredForm(title = "Created content") {
     target: { value: "2026-09-05T09:30" },
   });
   return user;
+}
+
+async function fillYouTubeImportForm() {
+  const user = userEvent.setup();
+  const form = within(screen.getByRole("region", { name: "Import a video" }));
+  await user.type(
+    form.getByLabelText("YouTube URL"),
+    "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  );
+  await user.selectOptions(form.getByLabelText("Hook type"), "question");
+  await user.selectOptions(form.getByLabelText("Format"), "long");
+  return { form, user };
 }
 
 describe("App", () => {
@@ -89,6 +148,106 @@ describe("App", () => {
     expect(
       within(importRegion).getByRole("button", { name: "Import video" }),
     ).toBeEnabled();
+  });
+
+  it("refreshes the complete feedback loop after one successful import", async () => {
+    mockedImportYouTubeVideo.mockResolvedValue(importedPost);
+    mockedGetPosts
+      .mockResolvedValueOnce(posts)
+      .mockResolvedValueOnce([...posts, importedPost]);
+    mockedGetAnalytics
+      .mockResolvedValueOnce(analytics)
+      .mockResolvedValueOnce(refreshedAnalytics);
+    mockedGetRecommendation
+      .mockResolvedValueOnce(recommendation)
+      .mockResolvedValueOnce(refreshedRecommendation);
+
+    render(<App />);
+    await screen.findByText("Pain point opening");
+    const { form, user } = await fillYouTubeImportForm();
+    await user.click(form.getByRole("button", { name: "Import video" }));
+
+    const postsRegion = screen.getByRole("region", { name: "Existing posts" });
+    expect(
+      await within(postsRegion).findByText("Imported YouTube experiment"),
+    ).toBeInTheDocument();
+    const totalPostsCard = screen.getByText("Total posts").parentElement;
+    expect(totalPostsCard).not.toBeNull();
+    expect(within(totalPostsCard!).getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("14,000")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Test question hooks next" }),
+    ).toBeInTheDocument();
+    const hookTable = screen.getByRole("table", {
+      name: "Engagement performance grouped by hook type",
+    });
+    expect(within(hookTable).getByText("Question")).toBeInTheDocument();
+    expect(mockedImportYouTubeVideo).toHaveBeenCalledOnce();
+    expect(mockedGetPosts).toHaveBeenCalledTimes(2);
+    expect(mockedGetAnalytics).toHaveBeenCalledTimes(2);
+    expect(mockedGetRecommendation).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not refresh the dashboard after a failed import", async () => {
+    mockedImportYouTubeVideo.mockRejectedValue(
+      new ApiError(
+        "Internal duplicate details",
+        409,
+        [],
+        "youtube_video_already_imported",
+      ),
+    );
+
+    render(<App />);
+    await screen.findByText("Pain point opening");
+    const { form, user } = await fillYouTubeImportForm();
+    await user.click(form.getByRole("button", { name: "Import video" }));
+
+    expect(await form.findByRole("alert")).toHaveTextContent(
+      "already in your content library",
+    );
+    expect(mockedImportYouTubeVideo).toHaveBeenCalledOnce();
+    expect(mockedGetPosts).toHaveBeenCalledOnce();
+    expect(mockedGetAnalytics).toHaveBeenCalledOnce();
+    expect(mockedGetRecommendation).toHaveBeenCalledOnce();
+  });
+
+  it("keeps existing dashboard data when refresh requests fail", async () => {
+    const refreshError = new ApiError("Unable to connect to the backend.", 0);
+    mockedImportYouTubeVideo.mockResolvedValue(importedPost);
+    mockedGetPosts
+      .mockResolvedValueOnce(posts)
+      .mockRejectedValueOnce(refreshError);
+    mockedGetAnalytics
+      .mockResolvedValueOnce(analytics)
+      .mockRejectedValueOnce(refreshError);
+    mockedGetRecommendation
+      .mockResolvedValueOnce(recommendation)
+      .mockRejectedValueOnce(refreshError);
+
+    render(<App />);
+    await screen.findByText("Pain point opening");
+    const { form, user } = await fillYouTubeImportForm();
+    await user.click(form.getByRole("button", { name: "Import video" }));
+
+    expect(
+      await form.findByText(
+        'Imported "Imported YouTube experiment" from YouTube.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Posts could not be refreshed/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Analytics could not be refreshed/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/recommendation could not be refreshed/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Pain point opening")).toBeInTheDocument();
+    expect(form.getByRole("button", { name: "Import video" })).toBeEnabled();
+    expect(mockedImportYouTubeVideo).toHaveBeenCalledOnce();
+    expect(mockedGetPosts).toHaveBeenCalledTimes(2);
+    expect(mockedGetAnalytics).toHaveBeenCalledTimes(2);
+    expect(mockedGetRecommendation).toHaveBeenCalledTimes(2);
   });
 
   it("renders the recommendation before supporting analytics", async () => {

@@ -37,6 +37,12 @@ const errorMessages: Record<string, string> = {
 };
 
 const genericErrorMessage = "We couldn't import this video. Please try again.";
+const refreshErrorMessage =
+  "The video was imported, but the dashboard could not be refreshed. Reload the page to see the latest data.";
+
+interface YouTubeImportFormProps {
+  onImported: () => Promise<void>;
+}
 
 function importErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.code) {
@@ -46,13 +52,14 @@ function importErrorMessage(error: unknown): string {
   return genericErrorMessage;
 }
 
-export function YouTubeImportForm() {
+export function YouTubeImportForm({ onImported }: YouTubeImportFormProps) {
   const [url, setUrl] = useState("");
   const [hookType, setHookType] = useState("pain_point");
   const [format, setFormat] = useState("short");
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,6 +72,7 @@ export function YouTubeImportForm() {
   function clearFeedback() {
     setSuccessMessage(null);
     setErrorMessage(null);
+    setRefreshError(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -87,6 +95,11 @@ export function YouTubeImportForm() {
       const importedPost = await importYouTubeVideo(payload);
       setUrl("");
       setSuccessMessage(`Imported "${importedPost.title}" from YouTube.`);
+      try {
+        await onImported();
+      } catch {
+        setRefreshError(refreshErrorMessage);
+      }
     } catch (error) {
       setErrorMessage(importErrorMessage(error));
     } finally {
@@ -188,6 +201,11 @@ export function YouTubeImportForm() {
           {errorMessage ? (
             <p className="error-message" role="alert">
               {errorMessage}
+            </p>
+          ) : null}
+          {refreshError ? (
+            <p className="error-message" role="alert">
+              {refreshError}
             </p>
           ) : null}
         </div>
