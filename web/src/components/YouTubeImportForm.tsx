@@ -16,6 +16,8 @@ const formatOptions = [
 ] as const;
 
 const errorMessages: Record<string, string> = {
+  demo_write_rate_limited:
+    "This demo has reached its write limit. Please try again later.",
   youtube_video_already_imported:
     "This YouTube video is already in your content library.",
   youtube_not_configured:

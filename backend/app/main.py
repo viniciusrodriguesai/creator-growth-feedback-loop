@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,6 +16,11 @@ from app.database import (
     create_database_engine,
     database_url_from_environment,
     get_session,
+)
+from app.demo_rate_limit import (
+    DEFAULT_DEMO_WRITE_RATE_WINDOW_SECONDS,
+    DemoWriteRateLimiter,
+    demo_write_rate_limit_from_environment,
 )
 from app.integrations.youtube import (
     InvalidYouTubeUrlError,
@@ -56,6 +61,10 @@ YOUTUBE_IMPORT_ERROR_STATUS = {
     MissingYouTubeApiKeyError: status.HTTP_503_SERVICE_UNAVAILABLE,
     YouTubeQuotaExceededError: status.HTTP_503_SERVICE_UNAVAILABLE,
     YouTubeRequestTimeoutError: status.HTTP_504_GATEWAY_TIMEOUT,
+}
+DEMO_WRITE_RATE_LIMIT_DETAIL = {
+    "code": "demo_write_rate_limited",
+    "message": "This demo has reached its write limit. Please try again later.",
 }
 
 
@@ -118,14 +127,41 @@ def frontend_origins_from_environment(
     return tuple(origins)
 
 
+def enforce_demo_write_rate_limit(request: Request) -> None:
+    limiter: DemoWriteRateLimiter | None = (
+        request.app.state.demo_write_rate_limiter
+    )
+    if limiter is None:
+        return
+    retry_after = limiter.consume()
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=DEMO_WRITE_RATE_LIMIT_DETAIL,
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
 def create_app(
     database_url: str = DEFAULT_DATABASE_URL,
     *,
     youtube_video_fetcher: YouTubeVideoFetcher = fetch_public_youtube_video,
     frontend_origins: Sequence[str] = (),
+    demo_write_rate_limit: int | None = None,
+    demo_write_rate_window_seconds: int = (
+        DEFAULT_DEMO_WRITE_RATE_WINDOW_SECONDS
+    ),
 ) -> FastAPI:
     application = FastAPI(lifespan=lifespan)
     application.state.database_engine = create_database_engine(database_url)
+    application.state.demo_write_rate_limiter = (
+        DemoWriteRateLimiter(
+            demo_write_rate_limit,
+            demo_write_rate_window_seconds,
+        )
+        if demo_write_rate_limit is not None
+        else None
+    )
     if frontend_origins:
         application.add_middleware(
             CORSMiddleware,
@@ -142,6 +178,7 @@ def create_app(
         "/posts",
         response_model=PostResponse,
         status_code=status.HTTP_201_CREATED,
+        dependencies=[Depends(enforce_demo_write_rate_limit)],
     )
     def create_post(
         post_data: PostCreate,
@@ -153,6 +190,7 @@ def create_app(
         "/imports/youtube",
         response_model=PostResponse,
         status_code=status.HTTP_201_CREATED,
+        dependencies=[Depends(enforce_demo_write_rate_limit)],
     )
     def import_youtube_video(
         import_data: YouTubeImportCreate,
@@ -200,7 +238,16 @@ def create_app(
     return application
 
 
-app = create_app(
-    database_url=database_url_from_environment(),
-    frontend_origins=frontend_origins_from_environment(),
-)
+def create_runtime_app() -> FastAPI:
+    demo_write_rate_limit, demo_write_rate_window_seconds = (
+        demo_write_rate_limit_from_environment()
+    )
+    return create_app(
+        database_url=database_url_from_environment(),
+        frontend_origins=frontend_origins_from_environment(),
+        demo_write_rate_limit=demo_write_rate_limit,
+        demo_write_rate_window_seconds=demo_write_rate_window_seconds,
+    )
+
+
+app = create_runtime_app()

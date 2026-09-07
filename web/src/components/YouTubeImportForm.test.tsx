@@ -165,6 +165,28 @@ describe("YouTubeImportForm", () => {
     expect(onImported).not.toHaveBeenCalled();
   });
 
+  it("explains when the shared demo write limit is reached", async () => {
+    mockedImportYouTubeVideo.mockRejectedValue(
+      new ApiError(
+        "Internal rate-limit details",
+        429,
+        [],
+        "demo_write_rate_limited",
+      ),
+    );
+    const user = await fillImportForm();
+
+    await user.click(screen.getByRole("button", { name: "Import video" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This demo has reached its write limit. Please try again later.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(
+      "Internal rate-limit details",
+    );
+    expect(onImported).not.toHaveBeenCalled();
+  });
+
   it("uses a safe message for an unknown error", async () => {
     mockedImportYouTubeVideo.mockRejectedValue(
       new Error("POST /imports/youtube failed with raw transport details"),
