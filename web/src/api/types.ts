@@ -18,6 +18,12 @@ export interface Post extends PostCreate {
   id: number;
 }
 
+export interface YouTubeImportRequest {
+  url: string;
+  hook_type: string;
+  format: string;
+}
+
 export interface AnalyticsSummary {
   post_count: number;
   eligible_post_count: number;
@@ -104,4 +110,13 @@ export interface ValidationIssue {
 
 export interface ValidationErrorResponse {
   detail: ValidationIssue[];
+}
+
+export interface ApiErrorDetail {
+  code: string;
+  message: string;
+}
+
+export interface ApiErrorResponse {
+  detail: ApiErrorDetail;
 }

@@ -1,10 +1,12 @@
 import type {
   AnalyticsResponse,
+  ApiErrorResponse,
   Post,
   PostCreate,
   RecommendationResponse,
   ValidationErrorResponse,
   ValidationIssue,
+  YouTubeImportRequest,
 } from "./types";
 
 const API_BASE_PATH = "/api";
@@ -12,16 +14,19 @@ const API_BASE_PATH = "/api";
 export class ApiError extends Error {
   readonly status: number;
   readonly validationIssues: ValidationIssue[];
+  readonly code: string | null;
 
   constructor(
     message: string,
     status: number,
     validationIssues: ValidationIssue[] = [],
+    code: string | null = null,
   ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.validationIssues = validationIssues;
+    this.code = code;
   }
 }
 
@@ -43,25 +48,55 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await readErrorBody(response);
+    if (errorBody && isApiErrorResponse(errorBody)) {
+      throw new ApiError(
+        errorBody.detail.message,
+        response.status,
+        [],
+        errorBody.detail.code,
+      );
+    }
     throw new ApiError(
       `The backend returned HTTP ${response.status}.`,
       response.status,
-      errorBody?.detail ?? [],
+      errorBody && isValidationErrorResponse(errorBody)
+        ? errorBody.detail
+        : [],
     );
   }
 
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError("The backend returned an invalid response.", response.status);
+  }
 }
 
-async function readErrorBody(
-  response: Response,
-): Promise<ValidationErrorResponse | null> {
+async function readErrorBody(response: Response): Promise<unknown | null> {
   try {
-    const body: unknown = await response.json();
-    return isValidationErrorResponse(body) ? body : null;
+    return (await response.json()) as unknown;
   } catch {
     return null;
   }
+}
+
+function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("detail" in value) ||
+    typeof value.detail !== "object" ||
+    value.detail === null
+  ) {
+    return false;
+  }
+
+  return (
+    "code" in value.detail &&
+    typeof value.detail.code === "string" &&
+    "message" in value.detail &&
+    typeof value.detail.message === "string"
+  );
 }
 
 function isValidationErrorResponse(
@@ -103,5 +138,14 @@ export function createPost(post: PostCreate): Promise<Post> {
   return request<Post>("/posts", {
     method: "POST",
     body: JSON.stringify(post),
+  });
+}
+
+export function importYouTubeVideo(
+  importRequest: YouTubeImportRequest,
+): Promise<Post> {
+  return request<Post>("/imports/youtube", {
+    method: "POST",
+    body: JSON.stringify(importRequest),
   });
 }
