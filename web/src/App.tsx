@@ -33,7 +33,10 @@ function App() {
           <section className="panel global-state" role="alert">
             <p className="eyebrow">Connection problem</p>
             <h2>The product data is unavailable</h2>
-            <p>Check that the FastAPI backend is running, then try again.</p>
+            <p>
+              Please try again shortly. If the problem continues, contact the demo
+              owner.
+            </p>
             <button type="button" onClick={() => void refreshAll()}>
               Retry connection
             </button>
