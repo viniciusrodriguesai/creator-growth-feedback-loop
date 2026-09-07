@@ -3,6 +3,7 @@ import { ExistingPostsTable } from "./components/ExistingPostsTable";
 import { NextExperimentCard } from "./components/NextExperimentCard";
 import { PerformanceBreakdown } from "./components/PerformanceBreakdown";
 import { SummaryCards } from "./components/SummaryCards";
+import { YouTubeImportForm } from "./components/YouTubeImportForm";
 import { useDashboardData } from "./hooks/useDashboardData";
 
 function App() {
@@ -43,6 +44,8 @@ function App() {
 
             <SummaryCards resource={analytics} />
             <PerformanceBreakdown resource={analytics} />
+
+            <YouTubeImportForm />
 
             <div className="content-workspace">
               <AddContentForm onCreated={refreshAll} />

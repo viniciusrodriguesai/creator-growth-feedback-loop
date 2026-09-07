@@ -317,6 +317,40 @@ h1 {
   align-items: start;
 }
 
+.youtube-import-panel {
+  margin-bottom: 20px;
+}
+
+.youtube-import-heading {
+  margin-bottom: 18px;
+}
+
+.youtube-import-form {
+  display: grid;
+  grid-template-columns:
+    minmax(260px, 2fr) minmax(150px, 0.8fr) minmax(120px, 0.65fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.youtube-import-action {
+  display: flex;
+}
+
+.youtube-import-action button {
+  white-space: nowrap;
+}
+
+.import-feedback {
+  grid-column: 1 / -1;
+  min-height: 1.25rem;
+}
+
+.import-feedback p {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -680,6 +714,16 @@ tbody th {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .youtube-import-form {
+    grid-template-columns:
+      minmax(240px, 1.5fr) repeat(2, minmax(130px, 0.75fr));
+  }
+
+  .youtube-import-action,
+  .import-feedback {
+    grid-column: 1 / -1;
+  }
+
   .breakdown-grid {
     grid-template-columns: 1fr;
   }
@@ -717,6 +761,19 @@ tbody th {
 
   .content-form {
     grid-template-columns: 1fr;
+  }
+
+  .youtube-import-form {
+    grid-template-columns: 1fr;
+  }
+
+  .youtube-import-heading {
+    align-items: stretch;
+  }
+
+  .youtube-import-action,
+  .youtube-import-action button {
+    width: 100%;
   }
 
   .recommendation-lead,

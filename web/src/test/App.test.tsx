@@ -42,14 +42,15 @@ function mockPopulatedDashboard() {
 
 async function fillRequiredForm(title = "Created content") {
   const user = userEvent.setup();
-  await user.type(screen.getByLabelText("Title"), title);
-  await user.type(screen.getByLabelText("Hook type"), "pain_point");
-  await user.type(screen.getByLabelText("Format"), "short");
-  await user.type(screen.getByLabelText("Creator"), "Alex");
-  await user.type(screen.getByLabelText("Views"), "1000");
-  await user.type(screen.getByLabelText("Likes"), "120");
-  await user.type(screen.getByLabelText("Comments"), "15");
-  fireEvent.change(screen.getByLabelText("Published date and time"), {
+  const form = within(screen.getByRole("region", { name: "Add content" }));
+  await user.type(form.getByLabelText("Title"), title);
+  await user.type(form.getByLabelText("Hook type"), "pain_point");
+  await user.type(form.getByLabelText("Format"), "short");
+  await user.type(form.getByLabelText("Creator"), "Alex");
+  await user.type(form.getByLabelText("Views"), "1000");
+  await user.type(form.getByLabelText("Likes"), "120");
+  await user.type(form.getByLabelText("Comments"), "15");
+  fireEvent.change(form.getByLabelText("Published date and time"), {
     target: { value: "2026-09-05T09:30" },
   });
   return user;
@@ -76,6 +77,18 @@ describe("App", () => {
     expect(within(hookTable).getByText("Pain point")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Format" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Creator" })).toBeInTheDocument();
+  });
+
+  it("places YouTube import in the dashboard workspace", async () => {
+    render(<App />);
+
+    await screen.findByText("Pain point opening");
+    const importRegion = screen.getByRole("region", { name: "Import a video" });
+
+    expect(within(importRegion).getByLabelText("YouTube URL")).toBeVisible();
+    expect(
+      within(importRegion).getByRole("button", { name: "Import video" }),
+    ).toBeEnabled();
   });
 
   it("renders the recommendation before supporting analytics", async () => {
