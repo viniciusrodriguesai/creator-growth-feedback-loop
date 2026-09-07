@@ -1,14 +1,22 @@
-from collections.abc import AsyncIterator, Callable
+import os
+from collections.abc import AsyncIterator, Callable, Mapping, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.analytics import PostAnalyticsInput, calculate_analytics
 from app.analytics_schemas import AnalyticsResponse
-from app.database import DEFAULT_DATABASE_URL, create_database_engine, get_session
+from app.database import (
+    DEFAULT_DATABASE_URL,
+    create_database_engine,
+    database_url_from_environment,
+    get_session,
+)
 from app.integrations.youtube import (
     InvalidYouTubeUrlError,
     MalformedYouTubeResponseError,
@@ -79,13 +87,52 @@ def _youtube_import_http_error(
     )
 
 
+def frontend_origins_from_environment(
+    environment: Mapping[str, str] | None = None,
+) -> tuple[str, ...]:
+    source_environment = os.environ if environment is None else environment
+    configured_origins = source_environment.get("FRONTEND_ORIGINS", "")
+    origins: list[str] = []
+
+    for configured_origin in configured_origins.split(","):
+        origin = configured_origin.strip().rstrip("/")
+        if not origin:
+            continue
+        parsed = urlsplit(origin)
+        if (
+            origin == "*"
+            or parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise ValueError(
+                "FRONTEND_ORIGINS must contain exact HTTP(S) origins without paths"
+            )
+        if origin not in origins:
+            origins.append(origin)
+
+    return tuple(origins)
+
+
 def create_app(
     database_url: str = DEFAULT_DATABASE_URL,
     *,
     youtube_video_fetcher: YouTubeVideoFetcher = fetch_public_youtube_video,
+    frontend_origins: Sequence[str] = (),
 ) -> FastAPI:
     application = FastAPI(lifespan=lifespan)
     application.state.database_engine = create_database_engine(database_url)
+    if frontend_origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(frontend_origins),
+            allow_methods=["GET", "POST"],
+            allow_headers=["Accept", "Content-Type"],
+        )
 
     @application.get("/health")
     def health() -> dict[str, str]:
@@ -153,4 +200,7 @@ def create_app(
     return application
 
 
-app = create_app()
+app = create_app(
+    database_url=database_url_from_environment(),
+    frontend_origins=frontend_origins_from_environment(),
+)

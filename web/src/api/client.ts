@@ -9,7 +9,10 @@ import type {
   YouTubeImportRequest,
 } from "./types";
 
-const API_BASE_PATH = "/api";
+function apiBasePath(): string {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  return configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, "") : "/api";
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -34,7 +37,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_PATH}${path}`, {
+    response = await fetch(`${apiBasePath()}${path}`, {
       ...options,
       headers: {
         Accept: "application/json",

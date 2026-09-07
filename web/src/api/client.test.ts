@@ -34,6 +34,22 @@ function jsonResponse(body: unknown, status: number): Response {
 describe("importYouTubeVideo", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("uses the configured production API base URL", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.com/");
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse(importedPost, 201));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await importYouTubeVideo(importRequest);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/imports/youtube",
+      expect.any(Object),
+    );
   });
 
   it("posts the typed request to the YouTube import endpoint", async () => {
