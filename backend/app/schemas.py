@@ -34,3 +34,9 @@ class PostResponse(PostCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: Annotated[int, Field(gt=0)]
+
+
+class YouTubeImportCreate(BaseModel):
+    url: NonEmptyString
+    hook_type: NonEmptyString
+    format: NonEmptyString
