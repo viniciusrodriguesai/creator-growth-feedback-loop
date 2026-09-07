@@ -1,229 +1,157 @@
 # Creator Growth Feedback Loop
 
-This repository currently contains a FastAPI backend that stores content-performance
-posts in a local SQLite database.
+Creator Growth Feedback Loop is a local content-intelligence dashboard. It
+stores published-content performance, compares patterns across user-classified
+hooks and formats, and proposes an explainable next experiment from the current
+dataset.
+
+## Architecture
+
+- A React and TypeScript frontend built with Vite.
+- A FastAPI backend that exposes posts, analytics, recommendations, and YouTube
+  import endpoints.
+- A local SQLite database for posts and imported YouTube identities.
+- The YouTube Data API v3 for public video metadata and metrics.
+
+During development, the frontend calls relative `/api` paths. Vite removes that
+prefix and proxies requests to FastAPI at `http://127.0.0.1:8000`.
+
+## YouTube import workflow
+
+In the dashboard, paste a public YouTube video URL, select its hook type and
+format, and choose **Import video**. The backend then:
+
+1. extracts and validates the YouTube video ID;
+2. rejects a video ID that was already imported;
+3. retrieves its public title, channel, publication time, duration, views,
+   likes, and comments;
+4. stores the post and YouTube identity in one transaction; and
+5. returns the imported post.
+
+After success, the frontend refreshes posts, summary analytics, performance
+breakdowns, and the Next Experiment recommendation without reloading the page.
+The URL field is cleared, while the selected hook type and format remain ready
+for another import.
+
+Supported HTTPS URL forms include:
+
+```text
+https://www.youtube.com/watch?v=VIDEO_ID
+https://youtu.be/VIDEO_ID
+https://www.youtube.com/shorts/VIDEO_ID
+https://www.youtube.com/embed/VIDEO_ID
+https://www.youtube.com/live/VIDEO_ID
+```
+
+The standard `youtube.com`, `www.youtube.com`, and `m.youtube.com` hosts are
+supported where applicable. Playlist, channel, non-HTTPS, credential-bearing,
+custom-port, and non-YouTube URLs are rejected.
 
 ## Requirements
 
 - Python 3.11 or later
+- Node.js and npm
+- A YouTube Data API v3 key only when using real YouTube import
 
-## Install the backend
+## Backend setup
 
-Run these commands from the repository root in PowerShell:
+From the repository root in PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e "backend[test]"
 ```
 
-## Run the backend
+Set the API key in the shell that will start the backend. Do not commit or paste
+the real value into project files:
+
+```powershell
+$env:YOUTUBE_API_KEY = "your-local-api-key"
+```
+
+The safe [`.env.example`](.env.example) documents the variable name. `.env`
+and other environment files are ignored by Git, but the application reads the
+process environment directly and does not automatically load `.env` files.
+
+Start the backend:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend
 ```
 
-The API is available at `http://127.0.0.1:8000`.
+The API is available at `http://127.0.0.1:8000`. The local database is stored
+at `backend/creator_growth.db` and is ignored by Git.
 
-The local database is stored at `backend/creator_growth.db` and is ignored by Git.
+Without `YOUTUBE_API_KEY`, the rest of the product remains usable and YouTube
+imports return a safe configuration error.
 
-## Run the tests
+## Frontend setup
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest backend\tests
-```
-
-## Run the frontend
-
-Install the frontend dependencies from the repository root:
+In a second terminal:
 
 ```powershell
 cd web
 npm install
-```
-
-Keep the FastAPI backend running on `http://127.0.0.1:8000`. In a second
-terminal, start Vite from the `web` directory:
-
-```powershell
 npm run dev
 ```
 
-Open `http://localhost:5173`. The frontend calls relative `/api` paths. During
-local development, Vite removes the `/api` prefix and forwards requests to
-FastAPI. This avoids hardcoded production URLs and does not require backend CORS
-configuration.
+Open `http://localhost:5173` while the backend is running.
 
-Run the frontend tests and production build from `web`:
+## API overview
 
-```powershell
-npm test
-npm run build
-```
+- `GET /health` checks backend availability.
+- `POST /posts` stores a manually entered content record.
+- `GET /posts` lists persisted posts in ascending ID order.
+- `POST /imports/youtube` imports public YouTube metadata and metrics.
+- `GET /analytics` returns the overall summary and groups by `hook_type`,
+  `format`, and `creator`.
+- `GET /recommendations` returns either an explainable next experiment or an
+  insufficient-data result.
 
-The single-page interface shows the next experiment first, followed by summary
-analytics, grouped performance, the content-entry form, and the persisted posts
-that provide the evidence. After a successful content submission, the frontend
-refreshes posts, analytics, and recommendations without reloading the page.
-
-## Current endpoints
-
-### Health
-
-`GET /health` returns HTTP `200` with:
-
-```json
-{"status": "ok"}
-```
-
-### Create a post
-
-`POST /posts` accepts:
-
-```json
-{
-  "platform": "youtube",
-  "title": "Manual check",
-  "hook_type": "question",
-  "format": "short",
-  "creator": "Creator",
-  "views": 0,
-  "likes": 1,
-  "comments": 2,
-  "shares": 3,
-  "duration_seconds": 30,
-  "published_at": "2026-09-05T12:00:00-03:00"
-}
-```
-
-The supported platform values are `youtube`, `instagram`, and `tiktok`.
-`shares` and `duration_seconds` may be omitted or set to `null`. Numeric values,
-when present, must be non-negative, and `published_at` must include a timezone.
-
-A successful request returns HTTP `201` with the stored post. Datetimes are
-normalized to UTC:
-
-```json
-{
-  "platform": "youtube",
-  "title": "Manual check",
-  "hook_type": "question",
-  "format": "short",
-  "creator": "Creator",
-  "views": 0,
-  "likes": 1,
-  "comments": 2,
-  "shares": 3,
-  "duration_seconds": 30,
-  "published_at": "2026-09-05T15:00:00Z",
-  "id": 1
-}
-```
-
-### List posts
-
-`GET /posts` returns HTTP `200` with all stored posts ordered by ascending `id`:
-
-```json
-[
-  {
-    "platform": "youtube",
-    "title": "Manual check",
-    "hook_type": "question",
-    "format": "short",
-    "creator": "Creator",
-    "views": 0,
-    "likes": 1,
-    "comments": 2,
-    "shares": 3,
-    "duration_seconds": 30,
-    "published_at": "2026-09-05T15:00:00Z",
-    "id": 1
-  }
-]
-```
-
-### Analyze posts
-
-`GET /analytics` returns HTTP `200` with an overall summary and results grouped
-by `hook_type`, `format`, and `creator`.
-
-The primary metric uses only fields that are consistently available:
+The primary engagement metric is:
 
 ```text
 known_core_engagements = likes + comments
 engagement_rate = sum(known_core_engagements) / sum(views)
 ```
 
-Only posts with `views > 0` participate in engagement rates. Zero-view posts
-remain stored and are reported in `zero_view_posts_excluded_from_rates`.
+Only posts with views greater than zero participate in rates. Recommendations
+compare eligible hook-type and format groups against the remaining eligible
+posts. A candidate needs at least two eligible posts; otherwise the endpoint
+returns `insufficient_data`.
 
-Shares do not affect `engagement_rate` or `lift_vs_overall`. `known_shares`
-contains the sum of available shares from eligible posts and is `null` when no
-eligible share value is available. A known share total of zero remains `0`.
-The `eligible_posts_with_share_data` and
-`eligible_posts_without_share_data` counters show the coverage. Missing shares
-are never interpreted as zero.
+## Testing
 
-Each group contains:
+Backend tests never use a real YouTube request; transports and video metadata
+are controlled in the test suite.
 
-- `value`
-- `post_count`
-- `eligible_post_count`
-- `total_views`
-- `known_core_engagements`
-- `known_shares`
-- `eligible_posts_with_share_data`
-- `eligible_posts_without_share_data`
-- `engagement_rate`
-- `lift_vs_overall`
-
-`lift_vs_overall` divides the group engagement rate by the overall engagement
-rate. It is `null` when either rate is unavailable or when the overall rate is
-zero.
-
-Grouped results are ordered by `value` alphabetically without case sensitivity,
-with the original value used as a deterministic tie-breaker. Rates are returned
-as normal JSON numbers without application-level rounding. Undefined values are
-returned as `null`; the API never returns `NaN` or infinity.
-
-### Get the next experiment
-
-`GET /recommendations` returns HTTP `200` with either
-`recommendation_available` or `insufficient_data`.
-
-The engine evaluates `hook_type`, `format`, and `creator` groups using the same
-core engagement metric as analytics. Each candidate needs at least two eligible
-posts. This threshold is an explicit product heuristic, not a claim of
-statistical significance.
-
-For every eligible candidate, the engine compares its aggregated rate with all
-other eligible posts in the same dimension:
-
-```text
-candidate_rate = candidate_core_engagements / candidate_views
-comparison_rate = remaining_core_engagements / remaining_views
-contrast_vs_rest = candidate_rate / comparison_rate
-rate_difference = candidate_rate - comparison_rate
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend\tests
+.\.venv\Scripts\python.exe -m pip check
 ```
 
-`rate_difference` is the primary ranking measure because it remains defined when
-the comparison rate is zero. In that case, `contrast_vs_rest` is `null` rather
-than infinity. Candidates are then ordered by larger eligible sample, larger
-view count, dimension priority (`hook_type` before `format`), and stable lexical
-value.
+Run frontend tests and the production build from `web`:
 
-Only `hook_type` and `format` can become the recommended dimension. Creator
-performance is included as supporting evidence but cannot override an actionable
-creative attribute. The action changes one dimension and asks that the other be
-kept as consistent as possible.
+```powershell
+npm test
+npm run build
+```
 
-A successful result includes the selected value, candidate and comparison rates,
-absolute difference, optional contrast, sample and view totals, evidence,
-action, and limitations. The limitations state that the evidence is
-observational, excludes shares from the primary metric, and may be confounded
-when the selected pattern appears with only one creator or control attribute.
+The build command runs TypeScript project compilation before Vite creates the
+production bundle. There is currently no lint script.
 
-The endpoint returns `insufficient_data` instead of forcing an experiment when
-there are no eligible posts, no actionable group reaches the threshold, no valid
-comparison population exists, or no actionable candidate outperforms its
-comparison population.
+## Limitations
+
+- Analytics are observational; they identify associations, not causes.
+- Recommendations use explicit product heuristics and are not statistical
+  proof.
+- Shares are unavailable through this YouTube integration and are stored as
+  unknown rather than zero.
+- Hook type and format are classified by the user, not inferred from the video.
+- Only public metadata and metrics exposed by the YouTube Data API are used.
+- Private, unavailable, restricted, or incomplete videos may not be importable.
+- API quota, credentials, network availability, and upstream responses can
+  temporarily prevent imports.
+- This project is not affiliated with or endorsed by YouTube.
+- This project is not affiliated with Osynth and makes no claim of access to
+  Osynth systems, source code, data, or internal processes.
