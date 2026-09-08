@@ -44,7 +44,11 @@ def create_database_engine(database_url: str = DEFAULT_DATABASE_URL) -> Engine:
         if make_url(database_url).get_backend_name() == "sqlite"
         else {}
     )
-    return create_engine(database_url, connect_args=connect_args)
+    return create_engine(
+        database_url,
+        connect_args=connect_args,
+        pool_pre_ping=True,
+    )
 
 
 def get_session(request: Request) -> Generator[Session, None, None]:

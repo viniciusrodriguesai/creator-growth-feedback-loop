@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database import DEFAULT_DATABASE_URL, database_url_from_environment
+from app.database import (
+    DEFAULT_DATABASE_URL,
+    create_database_engine,
+    database_url_from_environment,
+)
 from app.main import (
     app_environment_from_environment,
     create_app,
@@ -34,6 +38,49 @@ def test_invalid_database_url_returns_safe_configuration_error() -> None:
 
     assert str(error.value) == "DATABASE_URL must be a valid database URL"
     assert secret_value not in str(error.value)
+
+
+def test_sqlite_engine_uses_sqlite_options_and_pre_ping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    sentinel = object()
+
+    def capture_create_engine(url: str, **options: object) -> object:
+        captured["url"] = url
+        captured.update(options)
+        return sentinel
+
+    monkeypatch.setattr("app.database.create_engine", capture_create_engine)
+
+    assert create_database_engine("sqlite:///:memory:") is sentinel
+    assert captured == {
+        "url": "sqlite:///:memory:",
+        "connect_args": {"check_same_thread": False},
+        "pool_pre_ping": True,
+    }
+
+
+def test_postgres_engine_omits_sqlite_options_and_uses_pre_ping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    sentinel = object()
+    database_url = "postgresql+psycopg://user:password@example.com/database"
+
+    def capture_create_engine(url: str, **options: object) -> object:
+        captured["url"] = url
+        captured.update(options)
+        return sentinel
+
+    monkeypatch.setattr("app.database.create_engine", capture_create_engine)
+
+    assert create_database_engine(database_url) is sentinel
+    assert captured == {
+        "url": database_url,
+        "connect_args": {},
+        "pool_pre_ping": True,
+    }
 
 
 def test_frontend_origins_are_normalized_and_deduplicated() -> None:
