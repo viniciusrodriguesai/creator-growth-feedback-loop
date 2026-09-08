@@ -129,7 +129,9 @@ when `DEMO_WRITE_RATE_LIMIT` is unset.
 - **Frontend:** Render Static Site, built from `web/` and served over managed
   HTTPS.
 - **Backend:** one Render Python Web Service, started with
-  `uvicorn app.main:app --host 0.0.0.0 --port $PORT` and checked at `/health`.
+  `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Render checks `/ready`,
+  which verifies database connectivity; `/health` remains a lightweight
+  liveness endpoint.
 - **Database:** Neon PostgreSQL, using its persistent pooled connection string.
 
 This keeps the React build on a CDN, keeps every credential on the backend, and
@@ -142,6 +144,7 @@ PostgreSQL option is more durable for a no-cost portfolio demo.
 
 | Variable | Service | Secret | Purpose |
 | --- | --- | --- | --- |
+| `APP_ENV` | Backend | No | Set to `production` on Render; the Blueprint supplies this value. |
 | `DATABASE_URL` | Backend | Yes | Neon pooled PostgreSQL connection string. Local default remains SQLite when unset. |
 | `FRONTEND_ORIGINS` | Backend | No | Comma-separated exact frontend origins, such as `https://creator-growth-feedback-loop.onrender.com`. Wildcards are rejected. |
 | `YOUTUBE_API_KEY` | Backend | Yes | YouTube Data API v3 key used only by the server. |
@@ -152,6 +155,9 @@ PostgreSQL option is more durable for a no-cost portfolio demo.
 `PORT` is supplied by Render and is not a manual setting. Vite exposes every
 `VITE_*` value to browser code, so no API key, database URL, or server credential
 may use that prefix. `YOUTUBE_API_KEY` is read only by the Python integration.
+When `APP_ENV=production`, startup fails safely unless `DATABASE_URL`,
+`FRONTEND_ORIGINS`, and `YOUTUBE_API_KEY` are all configured. In development,
+these values remain optional and the local SQLite fallback is unchanged.
 
 ### Manual deployment steps
 
@@ -168,8 +174,8 @@ may use that prefix. `YOUTUBE_API_KEY` is read only by the Python integration.
    service.
 6. In Google Cloud, restrict the key to YouTube Data API v3 and configure quota
    monitoring or alerts. Never put the key in Render's frontend variables.
-7. Verify the API `/health`, load the static-site URL, and perform one controlled
-   import before sharing the demo.
+7. Verify the API `/health` and `/ready`, load the static-site URL, and perform
+   one controlled import before sharing the demo.
 
 No account or paid resource is created by this repository configuration.
 
@@ -188,7 +194,9 @@ shared rate limiter. Keep the demo URL controlled and monitor the YouTube quota.
 
 ## API overview
 
-- `GET /health` checks backend availability.
+- `GET /health` checks process liveness without querying the database.
+- `GET /ready` checks database connectivity and returns `503` with a generic
+  response when the database is unavailable.
 - `POST /posts` stores a manually entered content record.
 - `GET /posts` lists persisted posts in ascending ID order.
 - `POST /imports/youtube` imports public YouTube metadata and metrics.
@@ -213,6 +221,9 @@ returns `insufficient_data`.
 
 Backend tests never use a real YouTube request; transports and video metadata
 are controlled in the test suite.
+
+GitHub Actions runs the full backend tests plus `pip check`, and the full
+frontend tests plus production build, on every push and pull request to `main`.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest backend\tests
