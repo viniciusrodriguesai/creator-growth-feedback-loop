@@ -50,6 +50,12 @@ from app.youtube_imports import (
 )
 
 YouTubeVideoFetcher = Callable[[str], YouTubeVideoData]
+SUPPORTED_APP_ENVIRONMENTS = frozenset({"development", "production"})
+PRODUCTION_REQUIRED_VARIABLES = (
+    "DATABASE_URL",
+    "FRONTEND_ORIGINS",
+    "YOUTUBE_API_KEY",
+)
 
 YOUTUBE_IMPORT_ERROR_STATUS = {
     InvalidYouTubeUrlError: status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -126,6 +132,33 @@ def frontend_origins_from_environment(
             origins.append(origin)
 
     return tuple(origins)
+
+
+def app_environment_from_environment(
+    environment: Mapping[str, str] | None = None,
+) -> str:
+    source_environment = os.environ if environment is None else environment
+    app_environment = source_environment.get("APP_ENV", "development").strip()
+    app_environment = app_environment or "development"
+    if app_environment not in SUPPORTED_APP_ENVIRONMENTS:
+        raise ValueError("APP_ENV must be 'development' or 'production'")
+    return app_environment
+
+
+def validate_production_environment(environment: Mapping[str, str]) -> None:
+    if app_environment_from_environment(environment) != "production":
+        return
+
+    missing_variables = [
+        variable_name
+        for variable_name in PRODUCTION_REQUIRED_VARIABLES
+        if not environment.get(variable_name, "").strip()
+    ]
+    if missing_variables:
+        raise ValueError(
+            "Missing required production configuration: "
+            + ", ".join(missing_variables)
+        )
 
 
 def enforce_demo_write_rate_limit(request: Request) -> None:
@@ -254,13 +287,17 @@ def create_app(
     return application
 
 
-def create_runtime_app() -> FastAPI:
+def create_runtime_app(
+    environment: Mapping[str, str] | None = None,
+) -> FastAPI:
+    source_environment = os.environ if environment is None else environment
+    validate_production_environment(source_environment)
     demo_write_rate_limit, demo_write_rate_window_seconds = (
-        demo_write_rate_limit_from_environment()
+        demo_write_rate_limit_from_environment(source_environment)
     )
     return create_app(
-        database_url=database_url_from_environment(),
-        frontend_origins=frontend_origins_from_environment(),
+        database_url=database_url_from_environment(source_environment),
+        frontend_origins=frontend_origins_from_environment(source_environment),
         demo_write_rate_limit=demo_write_rate_limit,
         demo_write_rate_window_seconds=demo_write_rate_window_seconds,
     )

@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import Request
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import Session
 
 DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "creator_growth.db"
@@ -21,12 +22,19 @@ def database_url_from_environment(
         return DEFAULT_DATABASE_URL
 
     if database_url.startswith("postgres://"):
-        return f"postgresql+psycopg://{database_url.removeprefix('postgres://')}"
-    if database_url.startswith("postgresql://"):
-        return (
+        database_url = (
+            f"postgresql+psycopg://{database_url.removeprefix('postgres://')}"
+        )
+    elif database_url.startswith("postgresql://"):
+        database_url = (
             "postgresql+psycopg://"
             f"{database_url.removeprefix('postgresql://')}"
         )
+
+    try:
+        make_url(database_url)
+    except ArgumentError:
+        raise ValueError("DATABASE_URL must be a valid database URL") from None
     return database_url
 
 
