@@ -6,7 +6,8 @@ from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.analytics import PostAnalyticsInput, calculate_analytics
@@ -173,6 +174,21 @@ def create_app(
     @application.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @application.get("/ready")
+    def ready() -> dict[str, str]:
+        try:
+            with application.state.database_engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+        except SQLAlchemyError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "code": "database_unavailable",
+                    "message": "The database is unavailable.",
+                },
+            ) from None
+        return {"status": "ready"}
 
     @application.post(
         "/posts",
