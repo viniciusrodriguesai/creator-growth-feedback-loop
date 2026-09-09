@@ -181,10 +181,11 @@ No account or paid resource is created by this repository configuration.
 
 ### Demo write protection
 
-When configured, one in-memory limiter is shared by `POST /posts` and
-`POST /imports/youtube`. Read-only health, list, analytics, and recommendation
-requests are not limited. Render enables 10 writes per 3,600-second window and
-the API returns `429` with `Retry-After` when the allowance is exhausted.
+When configured, one in-memory limiter is shared by `POST /posts`,
+`POST /imports/youtube`, and `DELETE /posts/{post_id}`. Read-only health, list,
+analytics, and recommendation requests are not limited. Render enables 10
+writes per 3,600-second window and the API returns `429` with `Retry-After` when
+the allowance is exhausted.
 
 This is lightweight demo abuse mitigation only. It resets when the process
 restarts, is per-process, is not distributed, is not authentication, and is not
@@ -199,6 +200,8 @@ shared rate limiter. Keep the demo URL controlled and monitor the YouTube quota.
   response when the database is unavailable.
 - `POST /posts` stores a manually entered content record.
 - `GET /posts` lists persisted posts in ascending ID order.
+- `DELETE /posts/{post_id}` removes a post and its YouTube import mapping, when
+  present; it returns `204` on success and `404` for an unknown post.
 - `POST /imports/youtube` imports public YouTube metadata and metrics.
 - `GET /analytics` returns the overall summary and groups by `hook_type`,
   `format`, and `creator`.
