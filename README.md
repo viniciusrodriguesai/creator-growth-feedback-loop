@@ -1,24 +1,25 @@
 # Creator Growth Feedback Loop
 
-Creator Growth Feedback Loop turns scattered content-performance data into one
-explainable next experiment. A creator can import a public YouTube video or add
-a performance record, compare observed hook and format patterns, and decide
-what to test next without treating correlation as causation.
+Content analytics usually tell you what happened. Creator Growth Feedback Loop explores a harder question: what should you test next?
 
-- **Live Demo:** [Open the live dashboard](https://creator-growth-feedback-loop.onrender.com/)
-- **Short demo video:** _URL coming soon_
+It turns observed content performance into an explainable next experiment, then closes the loop when new performance data arrives.
+
+- **Live product:** [Open the deployed product](https://creator-growth-feedback-loop.onrender.com/)
+- **Demo video:** [Watch the product walkthrough](https://www.youtube.com/watch?v=r_Dtv8fwnhw)
 
 ![Creator Growth Feedback Loop showing an explainable next experiment](docs/images/next-experiment.png)
 
-## Product workflow
+## How the feedback loop works
 
-1. Import public YouTube metadata and metrics, or record a post manually.
-2. Classify the hook type and format so comparable creative patterns emerge.
-3. Review view-weighted engagement across hooks, formats, and creators.
-4. Use the evidence-backed Next Experiment card to choose a controlled test.
+Public performance data → analytics → hook/format comparison → explainable recommendation → next experiment → new performance data → recalculation
 
-**Core stack:** React, TypeScript, Vite, FastAPI, SQLAlchemy, SQLite for local
-development, PostgreSQL for hosted persistence, and YouTube Data API v3.
+A public YouTube video can be imported directly. The application fetches its real public performance metrics and recalculates the dashboard and Next Experiment recommendation without a page reload.
+
+Recommendations reflect observed performance and associations in the available data. They do not establish causation.
+
+## Implemented stack
+
+FastAPI, React, TypeScript, PostgreSQL, automated backend and frontend tests, and the YouTube Data API. Vite builds the frontend, SQLAlchemy manages persistence, and SQLite remains available for local development.
 
 ## Architecture
 
@@ -260,5 +261,6 @@ production bundle. There is currently no lint script.
 - Public demo writes are intentionally unauthenticated; the in-memory limit is
   only a lightweight guard for a controlled demonstration.
 - This project is not affiliated with or endorsed by YouTube.
-- This project is not affiliated with Osynth and makes no claim of access to
-  Osynth systems, source code, data, or internal processes.
+- This independent prototype is not affiliated with or endorsed by Osynth and
+  was built without access to Osynth systems, source code, private data, or
+  internal processes.

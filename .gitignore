@@ -30,6 +30,9 @@ coverage/
 *.sqlite
 *.sqlite3
 
+# Local demo media
+/docs/videos/*.mp4
+
 # Editors and operating systems
 .idea/
 .vscode/
