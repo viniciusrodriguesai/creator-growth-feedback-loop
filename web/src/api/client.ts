@@ -68,6 +68,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     );
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   try {
     return (await response.json()) as T;
   } catch {
@@ -141,6 +145,12 @@ export function createPost(post: PostCreate): Promise<Post> {
   return request<Post>("/posts", {
     method: "POST",
     body: JSON.stringify(post),
+  });
+}
+
+export function deletePost(postId: number): Promise<void> {
+  return request<void>(`/posts/${postId}`, {
+    method: "DELETE",
   });
 }
 

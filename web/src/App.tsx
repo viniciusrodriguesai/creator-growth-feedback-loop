@@ -52,7 +52,7 @@ function App() {
 
             <div className="content-workspace">
               <AddContentForm onCreated={refreshAll} />
-              <ExistingPostsTable resource={posts} />
+              <ExistingPostsTable resource={posts} onDeleted={refreshAll} />
             </div>
           </>
         )}

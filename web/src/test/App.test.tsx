@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../App";
 import {
   ApiError,
   createPost,
+  deletePost,
   getAnalytics,
   getPosts,
   getRecommendation,
@@ -24,6 +25,7 @@ vi.mock("../api/client", async (importOriginal) => {
   return {
     ...actual,
     createPost: vi.fn(),
+    deletePost: vi.fn(),
     getAnalytics: vi.fn(),
     getPosts: vi.fn(),
     getRecommendation: vi.fn(),
@@ -32,6 +34,7 @@ vi.mock("../api/client", async (importOriginal) => {
 });
 
 const mockedCreatePost = vi.mocked(createPost);
+const mockedDeletePost = vi.mocked(deletePost);
 const mockedGetAnalytics = vi.mocked(getAnalytics);
 const mockedGetPosts = vi.mocked(getPosts);
 const mockedGetRecommendation = vi.mocked(getRecommendation);
@@ -121,6 +124,10 @@ describe("App", () => {
     mockPopulatedDashboard();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders analytics summaries and grouped performance", async () => {
     render(<App />);
 
@@ -148,6 +155,95 @@ describe("App", () => {
     expect(
       within(importRegion).getByRole("button", { name: "Import video" }),
     ).toBeEnabled();
+  });
+
+  it("requires confirmation before deleting a post", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    render(<App />);
+    const row = await screen.findByRole("row", { name: /Pain point opening/ });
+    await userEvent.click(within(row).getByRole("button", { name: "Delete" }));
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Delete "Pain point opening"? This cannot be undone.',
+    );
+    expect(mockedDeletePost).not.toHaveBeenCalled();
+    expect(mockedGetPosts).toHaveBeenCalledOnce();
+  });
+
+  it("prevents duplicate deletion and refreshes the complete feedback loop", async () => {
+    let resolveDelete: (() => void) | undefined;
+    mockedDeletePost.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDelete = resolve;
+      }),
+    );
+    mockedGetPosts
+      .mockResolvedValueOnce(posts)
+      .mockResolvedValueOnce([posts[1]]);
+    mockedGetAnalytics
+      .mockResolvedValueOnce(analytics)
+      .mockResolvedValueOnce({
+        ...analytics,
+        overall: {
+          ...analytics.overall,
+          post_count: 1,
+          eligible_post_count: 1,
+          total_views: 800,
+        },
+        by_hook_type: [analytics.by_hook_type[1]],
+      });
+    mockedGetRecommendation
+      .mockResolvedValueOnce(recommendation)
+      .mockResolvedValueOnce(insufficientRecommendation);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<App />);
+    const row = await screen.findByRole("row", { name: /Pain point opening/ });
+    const user = userEvent.setup();
+    await user.click(within(row).getByRole("button", { name: "Delete" }));
+
+    const deletingButton = within(row).getByRole("button", {
+      name: "Deleting…",
+    });
+    expect(deletingButton).toBeDisabled();
+    expect(deletingButton).toHaveAttribute("aria-busy", "true");
+    await user.click(deletingButton);
+    expect(mockedDeletePost).toHaveBeenCalledOnce();
+
+    resolveDelete?.();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Pain point opening")).not.toBeInTheDocument();
+    });
+    expect(mockedDeletePost).toHaveBeenCalledWith(1);
+    expect(mockedGetPosts).toHaveBeenCalledTimes(2);
+    expect(mockedGetAnalytics).toHaveBeenCalledTimes(2);
+    expect(mockedGetRecommendation).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByRole("heading", { name: "More comparable posts needed" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows an error and keeps dashboard data when deletion fails", async () => {
+    mockedDeletePost.mockRejectedValue(
+      new ApiError("The backend returned HTTP 500.", 500),
+    );
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<App />);
+    const row = await screen.findByRole("row", { name: /Pain point opening/ });
+    await userEvent.click(
+      within(row).getByRole("button", { name: "Delete" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Post could not be deleted. The backend returned HTTP 500.",
+    );
+    expect(screen.getByText("Pain point opening")).toBeInTheDocument();
+    expect(mockedGetPosts).toHaveBeenCalledOnce();
+    expect(mockedGetAnalytics).toHaveBeenCalledOnce();
+    expect(mockedGetRecommendation).toHaveBeenCalledOnce();
   });
 
   it("refreshes the complete feedback loop after one successful import", async () => {

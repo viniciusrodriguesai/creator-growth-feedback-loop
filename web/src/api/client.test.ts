@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, importYouTubeVideo } from "./client";
+import { ApiError, deletePost, importYouTubeVideo } from "./client";
 import type { Post, YouTubeImportRequest } from "./types";
 
 const importRequest: YouTubeImportRequest = {
@@ -170,6 +170,28 @@ describe("importYouTubeVideo", () => {
       status: 201,
       code: null,
       message: "The backend returned an invalid response.",
+    });
+  });
+});
+
+describe("deletePost", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("sends a delete request and accepts an empty 204 response", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(deletePost(42)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith("/api/posts/42", {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
     });
   });
 });

@@ -1,3 +1,6 @@
+import { useState } from "react";
+
+import { ApiError, deletePost } from "../api/client";
 import type { Post } from "../api/types";
 import type { ResourceState } from "../hooks/useDashboardData";
 import {
@@ -8,9 +11,42 @@ import {
 
 interface ExistingPostsTableProps {
   resource: ResourceState<Post[]>;
+  onDeleted: () => Promise<void>;
 }
 
-export function ExistingPostsTable({ resource }: ExistingPostsTableProps) {
+function deleteErrorMessage(error: unknown): string {
+  return error instanceof ApiError
+    ? error.message
+    : "Unable to delete this post. Please try again.";
+}
+
+export function ExistingPostsTable({
+  resource,
+  onDeleted,
+}: ExistingPostsTableProps) {
+  const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function handleDelete(post: Post) {
+    if (
+      deletingPostId !== null ||
+      !window.confirm(`Delete "${post.title}"? This cannot be undone.`)
+    ) {
+      return;
+    }
+
+    setDeleteError(null);
+    setDeletingPostId(post.id);
+    try {
+      await deletePost(post.id);
+      await onDeleted();
+    } catch (error) {
+      setDeleteError(deleteErrorMessage(error));
+    } finally {
+      setDeletingPostId(null);
+    }
+  }
+
   return (
     <section className="panel posts-panel" aria-labelledby="posts-title">
       <div className="section-heading">
@@ -24,6 +60,12 @@ export function ExistingPostsTable({ resource }: ExistingPostsTableProps) {
       {resource.error ? (
         <p className="inline-error" role="alert">
           Posts could not be refreshed. {resource.error}
+        </p>
+      ) : null}
+
+      {deleteError ? (
+        <p className="inline-error" role="alert">
+          Post could not be deleted. {deleteError}
         </p>
       ) : null}
 
@@ -51,6 +93,7 @@ export function ExistingPostsTable({ resource }: ExistingPostsTableProps) {
                 <th scope="col">Creator</th>
                 <th scope="col" className="numeric-cell">Views</th>
                 <th scope="col">Published</th>
+                <th scope="col" className="action-cell">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -63,6 +106,17 @@ export function ExistingPostsTable({ resource }: ExistingPostsTableProps) {
                   <td>{formatDisplayValue(post.creator)}</td>
                   <td className="numeric-cell">{formatInteger(post.views)}</td>
                   <td>{formatDateTime(post.published_at)}</td>
+                  <td className="action-cell">
+                    <button
+                      type="button"
+                      className="delete-action"
+                      disabled={deletingPostId !== null}
+                      aria-busy={deletingPostId === post.id}
+                      onClick={() => void handleDelete(post)}
+                    >
+                      {deletingPostId === post.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
