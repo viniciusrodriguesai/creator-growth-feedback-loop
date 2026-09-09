@@ -5,8 +5,10 @@ explainable next experiment. A creator can import a public YouTube video or add
 a performance record, compare observed hook and format patterns, and decide
 what to test next without treating correlation as causation.
 
-- **Live Demo:** _URL coming soon_
+- **Live Demo:** [Open the live dashboard](https://creator-growth-feedback-loop.onrender.com/)
 - **Short demo video:** _URL coming soon_
+
+![Creator Growth Feedback Loop showing an explainable next experiment](docs/images/next-experiment.png)
 
 ## Product workflow
 
