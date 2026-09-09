@@ -103,7 +103,9 @@ def test_frontend_origins_reject_unsafe_values(origin: str) -> None:
         frontend_origins_from_environment({"FRONTEND_ORIGINS": origin})
 
 
-def test_cors_allows_only_the_configured_frontend_origin(tmp_path: Path) -> None:
+def test_cors_allows_delete_only_from_configured_frontend_origin(
+    tmp_path: Path,
+) -> None:
     database_url = f"sqlite:///{(tmp_path / 'cors.db').as_posix()}"
 
     with TestClient(
@@ -116,14 +118,14 @@ def test_cors_allows_only_the_configured_frontend_origin(tmp_path: Path) -> None
             "/posts",
             headers={
                 "Origin": "https://demo.example",
-                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Method": "DELETE",
             },
         )
         rejected_response = client.options(
             "/posts",
             headers={
                 "Origin": "https://untrusted.example",
-                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Method": "DELETE",
             },
         )
 

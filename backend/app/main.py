@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -39,7 +39,7 @@ from app.integrations.youtube import (
     parse_youtube_video_url,
 )
 from app.models import Base, Post
-from app.posts import persist_post
+from app.posts import delete_post, persist_post
 from app.recommendation_schemas import RecommendationResponse
 from app.recommendations import recommend_next_experiment
 from app.schemas import PostCreate, PostResponse, YouTubeImportCreate
@@ -200,7 +200,7 @@ def create_app(
         application.add_middleware(
             CORSMiddleware,
             allow_origins=list(frontend_origins),
-            allow_methods=["GET", "POST"],
+            allow_methods=["GET", "POST", "DELETE"],
             allow_headers=["Accept", "Content-Type"],
         )
 
@@ -267,6 +267,25 @@ def create_app(
         session: Annotated[Session, Depends(get_session)],
     ) -> list[Post]:
         return list(session.scalars(select(Post).order_by(Post.id)))
+
+    @application.delete(
+        "/posts/{post_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        dependencies=[Depends(enforce_demo_write_rate_limit)],
+    )
+    def remove_post(
+        post_id: int,
+        session: Annotated[Session, Depends(get_session)],
+    ) -> Response:
+        if not delete_post(session, post_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "code": "post_not_found",
+                    "message": "The requested post was not found.",
+                },
+            )
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @application.get("/analytics", response_model=AnalyticsResponse)
     def get_analytics(

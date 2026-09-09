@@ -102,6 +102,7 @@ def test_limit_is_shared_by_public_write_endpoints_only(tmp_path: Path) -> None:
                 "format": "short",
             },
         )
+        limited_delete_response = client.delete("/posts/1")
         read_responses = [
             client.get("/health"),
             client.get("/posts"),
@@ -111,6 +112,7 @@ def test_limit_is_shared_by_public_write_endpoints_only(tmp_path: Path) -> None:
 
     assert create_response.status_code == 201
     assert limited_response.status_code == 429
+    assert limited_delete_response.status_code == 429
     assert limited_response.json() == {
         "detail": {
             "code": "demo_write_rate_limited",
@@ -120,5 +122,6 @@ def test_limit_is_shared_by_public_write_endpoints_only(tmp_path: Path) -> None:
         }
     }
     assert limited_response.headers["retry-after"] == "3600"
+    assert limited_delete_response.headers["retry-after"] == "3600"
     assert fetch_calls == 0
     assert all(response.status_code == 200 for response in read_responses)
