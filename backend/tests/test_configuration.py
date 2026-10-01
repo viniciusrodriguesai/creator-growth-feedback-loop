@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 
 from app.database import (
     DEFAULT_DATABASE_URL,
@@ -190,7 +191,10 @@ def test_complete_production_configuration_creates_application() -> None:
     )
 
     try:
-        assert str(application.state.database_engine.url) == "sqlite:///:memory:"
+        assert application.state.database_engine.url.get_backend_name() == "sqlite"
+        assert application.state.database_engine.url.database == ":memory:"
+        with application.state.database_engine.connect() as connection:
+            assert connection.execute(text("SELECT 1")).scalar_one() == 1
         assert len(application.user_middleware) == 1
     finally:
         application.state.database_engine.dispose()
